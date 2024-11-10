@@ -28,25 +28,37 @@ fn pause_ms(ms: u64) {
 fn main() {
     let my_vector = vec![2, 5, 1, 0, 4, 3];
 
+    let add = |x, y| x + y;
+    let sum = add(2, 3);
+
+    let mut v = vec![2, 4, 6, 7];
+    let sum_of_stuff = v.iter()
+        .map(|x| x + 1)
+        .filter(|x| *x % 2 == 0)
+        .fold(0, |acc, x| acc + x);
+    println!("Sum of stuff: {}", sum_of_stuff);
+
     // 2. Spawn a child thread and have it call `expensive_sum(my_vector)`.  Store the returned
     // join handle in a variable called `handle`. Once you've done this you should be able to run
     // the code and see the Child thread output in the middle of the main thread's letters
     //
-    //let handle = ...
+    let handle = thread::spawn(move || {
+        expensive_sum(my_vector)
+    });
 
     // While the child thread is running, the main thread will also do some work
     for letter in vec!["a", "b", "c", "d", "e", "f"] {
         println!("Main thread: Letter {}", letter);
         pause_ms(200);
     }
-
+    
     // 3. Let's retrieve the value returned by the child thread once it has exited.  Using the
     // `handle` variable you stored the join handle in earlier, call .join() to wait for the thread
     // to exit with a `Result<i32, Err>`.  Get the i32 out of the result and store it in a `sum`
     // variable.  Uncomment the println.  If you did 1a and 1b correctly, the sum should be 20.
     //
-    //let sum =
-    //println!("The child thread's expensive sum is {}", sum);
+    let sum = handle.join().unwrap();
+    println!("The child thread's expensive sum is {}", sum);
 
     // Time for some fun with threads and channels!  Though there is a primitive type of channel
     // in the std::sync::mpsc module, I recommend always using channels from the crossbeam crate,
@@ -55,8 +67,7 @@ fn main() {
     // 4. Uncomment the block comment below (Find and remove the `/*` and `*/`).  Examine how the
     // flow of execution works.  Once you understand it, alter the values passed to the `pause_ms()`
     // calls so that both the "Thread B" outputs occur before the "Thread A" outputs.
-
-    /*
+    
     let (tx, rx) = channel::unbounded();
     // Cloning a channel makes another variable connected to that end of the channel so that you can
     // send it to another thread.
@@ -72,9 +83,9 @@ fn main() {
     pause_ms(100); // Make sure Thread A has time to get going before we spawn Thread B
 
     let handle_b = thread::spawn(move || {
-        pause_ms(0);
+        pause_ms(400);
         tx.send("Thread B: 1").unwrap();
-        pause_ms(200);
+        pause_ms(500);
         tx.send("Thread B: 2").unwrap();
     });
 
@@ -89,12 +100,38 @@ fn main() {
     // Join the child threads for good hygiene.
     handle_a.join().unwrap();
     handle_b.join().unwrap();
-    */
 
+    println!("Challenge time!");
     // Challenge: Make two child threads and give them each a receiving end to a channel.  From the
     // main thread loop through several values and print each out and then send it to the channel.
     // On the child threads print out the values you receive. Close the sending side in the main
     // thread by calling `drop(tx)` (assuming you named your sender channel variable `tx`).  Join
     // the child threads.
+
+    let (tx_z1, rx_z1) = channel::unbounded();
+    let (tx_z2, rx_z2) = channel::unbounded();
+
+    for i in 0..10 {
+        println!("Main thread: Sending {}", i);
+        tx_z1.send(i).unwrap();
+        tx_z2.send(i).unwrap();
+    }
+    
+    let handle_z1 = thread::spawn(move || {
+        rx_z1.iter().for_each(|msg| {
+            println!("Thread Z1: Received {}", msg);
+        });
+    });
+
+    let handle_z2 = thread::spawn(move || {
+        rx_z2.iter().for_each(|msg| {
+            println!("Thread Z2: Received {}", msg);
+        });
+    });
+    
+    drop(tx_z1);
+    drop(tx_z2);
+    handle_z1.join().unwrap();
+    handle_z2.join().unwrap();
     println!("Main thread: Exiting.")
 }

@@ -1,16 +1,10 @@
+use clap::{Parser, Subcommand};
+
 // FINAL PROJECT
 //
 // Create an image processing application.  Exactly what it does and how it does
 // it is up to you, though I've stubbed a good amount of suggestions for you.
 // Look for comments labeled **OPTION** below.
-//
-// Two image files are included in the project root for your convenience: dyson.png and pens.png
-// Feel free to use them or provide (or generate) your own images.
-//
-// Don't forget to have fun and play around with the code!
-//
-// Documentation for the image library is here: https://docs.rs/image/0.21.0/image/
-//
 // NOTE 1: Image processing is very CPU-intensive.  Your program will run *noticeably* faster if you
 // run it with the `--release` flag.
 //
@@ -20,87 +14,103 @@
 //
 //     cargo run --release blur image.png blurred.png
 //
-// NOTE 2: This is how you parse a number from a string (or crash with a
-// message). It works with any integer or float type.
-//
-//     let positive_number: u32 = some_string.parse().expect("Failed to parse a number");
+
+/// A simple CLI for image processing tasks
+#[derive(Parser)]
+#[command(name = "ImageProcessor")]
+#[command(author = "Your Name")]
+#[command(version = "1.0")]
+#[command(about = "Processes images", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Apply a blur effect to an image
+    Blur {
+        /// Input file name
+        #[arg(short, long)]
+        input: String,
+
+        /// Output file name
+        #[arg(short, long)]
+        output: String,
+
+        /// Amount of blur to apply
+        /// [default: 2.0]
+        #[arg(short, long)]
+        blur_amount: f32,
+    },
+}
 
 fn main() {
-    // 1. First, you need to implement some basic command-line argument handling
-    // so you can make your program do different things.  Here's a little bit
-    // to get you started doing manual parsing.
+    let cli = Cli::parse();
+
+    match &cli.command {
+        Commands::Blur {
+            input,
+            output,
+            blur_amount,
+        } => {
+            println!(
+                "Blurring image from {} to {} by {}",
+                input, output, blur_amount
+            );
+            blur(
+                input.to_string(),
+                output.to_string(),
+                blur_amount.to_owned(),
+            );
+        }
+    }
     //
-    // Challenge: If you're feeling really ambitious, you could delete this code
-    // and use the "clap" library instead: https://docs.rs/clap/2.32.0/clap/
-    let mut args: Vec<String> = std::env::args().skip(1).collect();
-    if args.is_empty() {
-        print_usage_and_exit();
-    }
-    let subcommand = args.remove(0);
-    match subcommand.as_str() {
-        // EXAMPLE FOR CONVERSION OPERATIONS
-        "blur" => {
-            if args.len() != 2 {
-                print_usage_and_exit();
-            }
-            let infile = args.remove(0);
-            let outfile = args.remove(0);
-            // **OPTION**
-            // Improve the blur implementation -- see the blur() function below
-            blur(infile, outfile);
-        }
-
-        // **OPTION**
-        // Brighten -- see the brighten() function below
-
-        // **OPTION**
-        // Crop -- see the crop() function below
-
-        // **OPTION**
-        // Rotate -- see the rotate() function below
-
-        // **OPTION**
-        // Invert -- see the invert() function below
-
-        // **OPTION**
-        // Grayscale -- see the grayscale() function below
-
-        // A VERY DIFFERENT EXAMPLE...a really fun one. :-)
-        "fractal" => {
-            if args.len() != 1 {
-                print_usage_and_exit();
-            }
-            let outfile = args.remove(0);
-            fractal(outfile);
-        }
-
-        // **OPTION**
-        // Generate -- see the generate() function below -- this should be sort of like "fractal()"!
-
-        // For everything else...
-        _ => {
-            print_usage_and_exit();
-        }
-    }
+    // let subcommand = args.remove(0);
+    // match subcommand.as_str() {
+    //     // EXAMPLE FOR CONVERSION OPERATIONS
+    //
+    //     // **OPTION**
+    //     // Brighten -- see the brighten() function below
+    //
+    //     // **OPTION**
+    //     // Crop -- see the crop() function below
+    //
+    //     // **OPTION**
+    //     // Rotate -- see the rotate() function below
+    //
+    //     // **OPTION**
+    //     // Invert -- see the invert() function below
+    //
+    //     // **OPTION**
+    //     // Grayscale -- see the grayscale() function below
+    //
+    //     // A VERY DIFFERENT EXAMPLE...a really fun one. :-)
+    //     "fractal" => {
+    //         if args.len() != 1 {
+    //             print_usage_and_exit();
+    //         }
+    //         let outfile = args.remove(0);
+    //         fractal(outfile);
+    //     }
+    //
+    //     // **OPTION**
+    //     // Generate -- see the generate() function below -- this should be sort of like "fractal()"!
+    //
+    //     // For everything else...
+    //     _ => {
+    //         print_usage_and_exit();
+    //     }
+    // }
 }
 
-fn print_usage_and_exit() {
-    println!("USAGE (when in doubt, use a .png extension on your filenames)");
-    println!("blur INFILE OUTFILE");
-    println!("fractal OUTFILE");
-    // **OPTION**
-    // Print useful information about what subcommands and arguments you can use
-    // println!("...");
-    std::process::exit(-1);
-}
-
-fn blur(infile: String, outfile: String) {
+fn blur(infile: String, outfile: String, blur_amount: f32) {
     // Here's how you open an existing image file
     let img = image::open(infile).expect("Failed to open INFILE.");
     // **OPTION**
     // Parse the blur amount (an f32) from the command-line and pass it through
     // to this function, instead of hard-coding it to 2.0.
-    let img2 = img.blur(2.0);
+    let img2 = img.blur(blur_amount);
     // Here's how you save an image to a file.
     img2.save(outfile).expect("Failed writing OUTFILE.");
 }
